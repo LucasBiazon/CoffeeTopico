@@ -1,88 +1,67 @@
 import { type FormEvent, useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { apiLogin } from '../../lib/api';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-export function LoginPage() {
+export default function LoginPage() {
+  const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { setUser } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const from = (location.state as { from?: string } | null)?.from || '/';
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    setSubmitting(true);
+    setLoading(true);
     try {
-      const user = await apiLogin(email, password);
-      setUser(user);
-      navigate(from, { replace: true });
+      await login(email, password);
+      navigate('/');
     } catch (err: any) {
-      let msg = err?.message || 'Erro ao fazer login';
-      try {
-        const parsed = JSON.parse(msg);
-        if (parsed?.error) msg = parsed.error;
-      } catch {
-        // ignora
-      }
-      setError(msg);
+      setError(err.message || 'Erro ao entrar');
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   }
 
   return (
-    <div className="page auth-page">
-      <div className="page-header">
-        <div>
-          <h1>Entrar</h1>
-          <p>Entre para salvar seu perfil e receber recomendações.</p>
-        </div>
-      </div>
+    <div className="auth-card">
+      <h1>Entrar</h1>
+      <p>Continue organizando seus cafés e tópicos.</p>
 
-      <div className="auth-card">
-        <form onSubmit={handleSubmit} className="auth-form">
-          <label>
-            Email
-            <input
-              type="email"
-              autoComplete="email"
-              placeholder="voce@exemplo.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </label>
+      {error && <div className="page-error">{error}</div>}
 
-          <label>
-            Senha
-            <input
-              type="password"
-              autoComplete="current-password"
-              placeholder="Sua senha"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-            />
-          </label>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Email
+          <input
+            className="input"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </label>
 
-          {error && <div className="page-error">{error}</div>}
+        <label>
+          Senha
+          <input
+            className="input"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </label>
 
-          <button className="btn" type="submit" disabled={submitting}>
-            {submitting ? 'Entrando...' : 'Entrar'}
-          </button>
-        </form>
+        <button className="btn" type="submit" disabled={loading}>
+          {loading ? 'Entrando...' : 'Entrar'}
+        </button>
+      </form>
 
-        <p className="auth-switch">
-          Ainda não tem conta? <Link to="/signup">Criar conta</Link>
-        </p>
+      <div className="auth-footer">
+        Ainda não tem conta? <Link to="/signup">Criar conta</Link>
       </div>
     </div>
   );

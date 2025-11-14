@@ -2,31 +2,24 @@ import Coffee from "../models/Coffee.js";
 
 function buildCoffeeQuery(query) {
   const filter = {};
-
   if (query.type) {
     filter.type = query.type;
   }
-
   if (query.roast) {
     filter.roast = query.roast;
   }
-
   if (query.available !== undefined) {
     filter.available = query.available === "true";
   }
-
   if (query.search) {
     filter.name = { $regex: query.search, $options: "i" };
   }
-
   if (query.contains) {
     filter.contains = query.contains;
   }
-
   if (query.tag) {
     filter.tags = query.tag;
   }
-
   return filter;
 }
 

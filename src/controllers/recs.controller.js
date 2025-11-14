@@ -1,6 +1,8 @@
 import axios from "axios";
 import Coffee from "../models/Coffee.js";
 import env from "../config/env.js";
+import Review from "../models/Review.js";
+import Coffee from "../models/Coffee.js";
 
 export async function getWeatherRecommendations(req, res, next) {
   try {
@@ -18,7 +20,7 @@ export async function getWeatherRecommendations(req, res, next) {
       }
     );
 
-    const temp = response.data.main.temp; // °C
+    const temp = response.data.main.temp;
     const isRaining = response.data.weather.some((w) =>
       String(w.main).toLowerCase().includes("rain")
     );
@@ -48,10 +50,6 @@ export async function getWeatherRecommendations(req, res, next) {
     next(err);
   }
 }
-
-
-import Review from "../models/Review.js";
-import Coffee from "../models/Coffee.js";
 
 export async function getPersonalizedRecommendations(req, res, next) {
   try {

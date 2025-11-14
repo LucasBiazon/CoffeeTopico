@@ -26,9 +26,7 @@ export function SignupPage() {
       try {
         const parsed = JSON.parse(msg);
         if (parsed?.error) msg = parsed.error;
-      } catch {
-        // ignora
-      }
+      } catch {}
       setError(msg);
     } finally {
       setSubmitting(false);

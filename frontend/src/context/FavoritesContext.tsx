@@ -1,67 +1,45 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from 'react';
-import { apiGetMyFavorites, apiToggleFavorite, type Coffee } from '../lib/api';
-import { useAuth } from './AuthContext';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { loadFavoriteIds, saveFavoriteIds } from '../lib/api';
 
-interface FavoritesContextValue {
-  favorites: Coffee[];
+type FavoritesContextValue = {
   favoriteIds: Set<string>;
-  loading: boolean;
-  toggle(coffeeId: string): Promise<void>;
-  refresh(): Promise<void>;
-}
+  toggle: (id: string) => void;
+};
 
 const FavoritesContext = createContext<FavoritesContextValue | undefined>(
   undefined,
 );
 
-export function FavoritesProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
-  const [favorites, setFavorites] = useState<Coffee[]>([]);
+export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
-
-  async function refresh() {
-    if (!user) {
-      setFavorites([]);
-      setFavoriteIds(new Set());
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await apiGetMyFavorites();
-      setFavorites(res.items);
-      setFavoriteIds(new Set(res.coffeeIds.map(String)));
-    } finally {
-      setLoading(false);
-    }
-  }
 
   useEffect(() => {
-    refresh();
-  }, [user]);
+    setFavoriteIds(loadFavoriteIds());
+  }, []);
 
-  async function toggle(coffeeId: string) {
-    if (!user) return;
-    const res = await apiToggleFavorite(coffeeId);
-    const next = new Set(favoriteIds);
-    if (res.isFavorite) {
-      next.add(coffeeId);
-    } else {
-      next.delete(coffeeId);
-    }
-    setFavoriteIds(next);
-  }
+  const toggle = (id: string) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      saveFavoriteIds(next);
+      return next;
+    });
+  };
+
+  const value = useMemo(
+    () => ({
+      favoriteIds,
+      toggle,
+    }),
+    [favoriteIds],
+  );
 
   return (
-    <FavoritesContext.Provider
-      value={{ favorites, favoriteIds, loading, toggle, refresh }}
-    >
+    <FavoritesContext.Provider value={value}>
       {children}
     </FavoritesContext.Provider>
   );
@@ -70,6 +48,6 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 export function useFavorites() {
   const ctx = useContext(FavoritesContext);
   if (!ctx)
-    throw new Error('useFavorites deve ser usado dentro de FavoritesProvider');
+    throw new Error('useFavorites must be used within FavoritesProvider');
   return ctx;
 }

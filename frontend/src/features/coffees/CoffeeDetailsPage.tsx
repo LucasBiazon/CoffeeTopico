@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+
+import { useAuth } from '../../context/AuthContext';
+import { useFavorites } from '../../context/FavoritesContext';
 import {
   type Coffee,
   type Review,
@@ -7,11 +10,11 @@ import {
   apiGetReviews,
   apiCreateReview,
 } from '../../lib/api';
-import { useAuth } from '../../context/AuthContext';
 
-export function CoffeeDetailsPage() {
+export default function CoffeeDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { favoriteIds, toggle } = useFavorites();
 
   const [coffee, setCoffee] = useState<Coffee | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -21,7 +24,7 @@ export function CoffeeDetailsPage() {
 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
-  const [submittingReview, setSubmittingReview] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,17 +54,17 @@ export function CoffeeDetailsPage() {
       }
     }
 
-    loadCoffee();
-    loadReviews();
+    void loadCoffee();
+    void loadReviews();
   }, [id]);
 
-  async function handleSubmitReview(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!id) return;
-    setSubmittingReview(true);
+    setSubmitting(true);
     setReviewError(null);
     try {
-      const created = await apiCreateReview(id, rating, comment);
+      const created = await apiCreateReview(id, rating, comment.trim());
       setReviews((prev) => {
         const idx = prev.findIndex(
           (r) => r.user.id && created.user.id && r.user.id === created.user.id,
@@ -73,15 +76,11 @@ export function CoffeeDetailsPage() {
         }
         return [created, ...prev];
       });
+      setComment('');
     } catch (err: any) {
-      let msg = err.message || 'Erro ao enviar review';
-      try {
-        const parsed = JSON.parse(msg);
-        if (parsed?.error) msg = parsed.error;
-      } catch {}
-      setReviewError(msg);
+      setReviewError(err.message || 'Erro ao enviar review');
     } finally {
-      setSubmittingReview(false);
+      setSubmitting(false);
     }
   }
 
@@ -97,6 +96,11 @@ export function CoffeeDetailsPage() {
     return <div className="page-error">Café não encontrado.</div>;
   }
 
+  const isFavorite = favoriteIds.has(coffee._id);
+  const imageSrc =
+    coffee.image_url ??
+    'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80';
+
   return (
     <div className="page">
       <div className="page-header">
@@ -106,7 +110,16 @@ export function CoffeeDetailsPage() {
             <p className="coffee-roastery">por {coffee.roastery}</p>
           )}
         </div>
-        <div>
+        <div className="coffee-details-actions">
+          <button
+            type="button"
+            className={
+              'favorite-btn' + (isFavorite ? ' favorite-btn-active' : '')
+            }
+            onClick={() => toggle(coffee._id)}
+          >
+            {isFavorite ? '♥ Favorito' : '♡ Favoritar'}
+          </button>
           <Link to="/" className="btn-outline">
             Voltar ao catálogo
           </Link>
@@ -114,22 +127,16 @@ export function CoffeeDetailsPage() {
       </div>
 
       <div className="coffee-details">
-        {coffee.image_url && (
-          <div className="coffee-details-image">
-            <img src={coffee.image_url} alt={coffee.name} />
-          </div>
-        )}
+        <div className="coffee-details-image">
+          <img src={imageSrc} alt={coffee.name} />
+        </div>
 
         <div className="coffee-details-body">
           <div className="coffee-details-chips">
-            {coffee.type && (
-              <span className="tag">
-                {coffee.type === 'bean' ? 'Grão' : 'Bebida'}
-              </span>
-            )}
+            {coffee.type && <span className="tag">{coffee.type}</span>}
             {coffee.roast && (
               <span className={`tag tag-${coffee.roast}`}>
-                Torra {coffee.roast}
+                Torra {coffee.roast.toUpperCase()}
               </span>
             )}
             {coffee.price && (
@@ -162,7 +169,8 @@ export function CoffeeDetailsPage() {
             <div className="reviews-header">
               <h2>Avaliações</h2>
               <span className="reviews-count">
-                {reviews.length} review{reviews.length === 1 ? '' : 's'}
+                {reviews.length} review
+                {reviews.length === 1 ? '' : 's'}
               </span>
             </div>
 
@@ -206,8 +214,9 @@ export function CoffeeDetailsPage() {
             )}
 
             {user ? (
-              <form className="review-form" onSubmit={handleSubmitReview}>
+              <form className="review-form" onSubmit={handleSubmit}>
                 <h3>Deixe sua avaliação</h3>
+
                 <label>
                   Nota
                   <select
@@ -244,12 +253,8 @@ export function CoffeeDetailsPage() {
 
                 {reviewError && <div className="page-error">{reviewError}</div>}
 
-                <button
-                  className="btn"
-                  type="submit"
-                  disabled={submittingReview}
-                >
-                  {submittingReview ? 'Enviando...' : 'Salvar avaliação'}
+                <button className="btn" type="submit" disabled={submitting}>
+                  {submitting ? 'Enviando...' : 'Salvar avaliação'}
                 </button>
               </form>
             ) : (
