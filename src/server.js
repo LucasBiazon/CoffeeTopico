@@ -45,9 +45,6 @@ app.get("/_debug/routes", (req, res) => {
   res.json(list);
 });
 
-app.use((req, res) => res.status(404).json({ error: "not found" }));
-
-
 connectDB().then(() => {
   app.listen(env.port, () => console.log(` API on http://localhost:${env.port}`));
 });

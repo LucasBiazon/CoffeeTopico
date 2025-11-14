@@ -12,7 +12,7 @@ const r = Router();
 r.use('/auth', authRoutes);
 r.use('/coffees', coffeesRoutes);
 r.use('/profiles', profilesRoutes);
-r.use('/coffees/:id/reviews', reviewsRoutes);
+r.use('/coffees/:coffeeId/reviews', reviewsRoutes);
 r.use('/favorites', favoritesRoutes);
 r.use('/recs', recsRoutes);
 

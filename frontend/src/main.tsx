@@ -1,17 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { AppRouter } from './App';
+
+import App from './App';
 import './index.css';
+import { AuthProvider } from './context/AuthContext';
 import { FavoritesProvider } from './context/FavoritesContext';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <FavoritesProvider>
-          <AppRouter />
+          <App />
         </FavoritesProvider>
       </AuthProvider>
     </BrowserRouter>
