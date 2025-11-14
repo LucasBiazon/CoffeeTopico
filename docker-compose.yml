@@ -38,5 +38,19 @@ services:
       timeout: 5s
       retries: 5
 
+  coffeetopico-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /coffee-api
+    container_name: coffeetopico-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    environment:
+      - VITE_API_URL=/coffee-api
+
 volumes:
   mongo_data:
