@@ -1,11 +1,11 @@
-import { Router } from "express";
-import { signup, login, me } from "../controllers/auth.controller.js";
-import { authRequired } from "../middleware/auth.js";
+import { Router } from 'express';
+import { signup, login, me } from '../controllers/auth.controller.js';
+import { auth } from '../middleware/auth.js';
 
-const router = Router();
+const r = Router();
 
-router.post("/signup", signup);
-router.post("/login", login);
-router.get("/me", authRequired, me);
+r.post('/signup', signup);
+r.post('/login', login);
+r.get('/me', auth(), me);
 
-export default router;
+export default r;

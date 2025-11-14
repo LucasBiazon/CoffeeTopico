@@ -76,7 +76,6 @@ export function CoffeeListPage() {
 
               return (
                 <div key={coffee._id} className="coffee-card">
-                  {/* Cabeçalho com imagem e coração */}
                   <div className="coffee-card-header">
                     <Link
                       to={`/coffees/${coffee._id}`}
@@ -106,7 +105,6 @@ export function CoffeeListPage() {
                     </button>
                   </div>
 
-                  {/* Corpo do card, clicável pro detalhe */}
                   <Link
                     to={`/coffees/${coffee._id}`}
                     className="coffee-card-body-link"

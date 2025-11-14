@@ -1,63 +1,97 @@
-import { type ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import type { JSX } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-export function AppLayout({ children }: { children: ReactNode }) {
+export function AppLayout(): JSX.Element {
   const { user, logout } = useAuth();
-  const location = useLocation();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate('/login');
+  }
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <div className="app-header-left">
-          <Link to="/" className="logo">
-            ☕ CoffeeTópico
-          </Link>
-          <nav className="nav">
-            <Link
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
+          <button
+            type="button"
+            className="flex items-center gap-2"
+            onClick={() => navigate('/')}
+          >
+            <span className="text-xl">☕</span>
+            <span className="text-lg font-semibold text-slate-900">
+              CoffeeTópico
+            </span>
+          </button>
+
+          <nav className="flex items-center gap-4 text-sm">
+            <NavLink
               to="/"
-              className={
-                location.pathname === '/' ? 'nav-link active' : 'nav-link'
+              end
+              className={({ isActive }) =>
+                `px-2 py-1 rounded-md ${
+                  isActive
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`
               }
             >
-              Catálogo
-            </Link>
-            {user && (
-              <Link
-                to="/profile"
-                className={
-                  location.pathname.startsWith('/profile')
-                    ? 'nav-link active'
-                    : 'nav-link'
-                }
-              >
-                Perfil
-              </Link>
-            )}
+              Cafés
+            </NavLink>
+
+            <NavLink
+              to="/favorites"
+              className={({ isActive }) =>
+                `px-2 py-1 rounded-md ${
+                  isActive
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`
+              }
+            >
+              Favoritos
+            </NavLink>
+
+            <NavLink
+              to="/profile"
+              className={({ isActive }) =>
+                `px-2 py-1 rounded-md ${
+                  isActive
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`
+              }
+            >
+              Perfil
+            </NavLink>
           </nav>
-        </div>
-        <div className="app-header-right">
-          {user ? (
-            <>
-              <span className="user-pill">{user.name}</span>
-              <button className="btn-outline" onClick={logout}>
-                Sair
-              </button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" className="btn-outline">
-                Entrar
-              </Link>
-              <Link to="/signup" className="btn">
-                Criar conta
-              </Link>
-            </>
-          )}
+
+          <div className="flex items-center gap-3 text-sm">
+            {user && (
+              <div className="flex flex-col items-end">
+                <span className="font-medium text-slate-900">{user.name}</span>
+                <span className="text-xs text-slate-500">{user.email}</span>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="px-3 py-1 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
+            >
+              Sair
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="app-main">{children}</main>
+      <main className="flex-1">
+        <div className="mx-auto max-w-6xl px-4 py-6">
+          <Outlet />
+        </div>
+      </main>
     </div>
   );
 }

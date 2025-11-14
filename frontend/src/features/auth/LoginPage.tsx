@@ -1,68 +1,63 @@
-import { type FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { apiLogin } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { setUser } = useAuth();
   const navigate = useNavigate();
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      await login(email, password);
+      const user = await apiLogin(email, password);
+      setUser(user);
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Erro ao entrar');
+      setError(err.message || 'Erro ao fazer login');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="auth-card">
+    <div className="auth-page">
       <h1>Entrar</h1>
-      <p>Continue organizando seus cafés e tópicos.</p>
-
-      {error && <div className="page-error">{error}</div>}
-
       <form onSubmit={handleSubmit}>
         <label>
-          Email
+          E-mail
           <input
-            className="input"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
           />
         </label>
 
         <label>
           Senha
           <input
-            className="input"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
           />
         </label>
 
-        <button className="btn" type="submit" disabled={loading}>
+        {error && <p className="error">{error}</p>}
+
+        <button type="submit" disabled={loading}>
           {loading ? 'Entrando...' : 'Entrar'}
         </button>
       </form>
 
-      <div className="auth-footer">
-        Ainda não tem conta? <Link to="/signup">Criar conta</Link>
-      </div>
+      <p>
+        Não tem conta? <Link to="/signup">Cadastre-se</Link>
+      </p>
     </div>
   );
 }

@@ -764,3 +764,18 @@ a:hover {
   margin: 0 0 4px;
   font-size: 0.96rem;
 }
+
+.page-error {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
+.page-loading {
+  padding: 8px 0;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
