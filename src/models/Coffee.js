@@ -37,6 +37,15 @@ const CoffeeSchema = new mongoose.Schema(
     rating_avg: { type: Number, default: 0 },
     rating_count: { type: Number, default: 0 },
     image_url: { type: String },
+    caffeine_mg: { type: Number },
+    temperature: {
+      type: String,
+      enum: ["hot", "cold", "either"],
+      default: "hot",
+    },
+    tags: [{ type: String }],
+    seasonal: { type: Boolean, default: false },
+    recommended_weather: [{ type: String }],
   },
   { timestamps: true }
 );

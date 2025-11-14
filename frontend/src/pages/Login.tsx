@@ -1,90 +1,77 @@
-import { useState, type FormEvent } from 'react';
-import { login, setAuthToken, setAuthUser } from '../lib/api';
+// src/pages/Login.tsx
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { login, saveAuth } from '../lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setLoading(true);
     try {
       const data = await login(email, password);
-
-      if (data?.token) {
-        setAuthToken(data.token);
+      const token = (data as any).token || (data as any).accessToken;
+      if (token) {
+        saveAuth(token);
       }
-      if (data?.user) {
-        setAuthUser(data.user);
-      }
-
       navigate('/profile');
     } catch (err: any) {
       setError(err.message || 'Erro ao fazer login');
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
     <div className="auth-shell">
-      <header className="topbar">
-        <div className="topbar-left">
-          <Link to="/" className="brand">
-            CoffeeTópico ☕
-          </Link>
-          <p className="muted">Login na área do usuário</p>
-        </div>
-        <div className="topbar-right">
-          <Link to="/signup" className="top-button secondary">
-            Criar conta
-          </Link>
-        </div>
-      </header>
+      <div className="auth-card">
+        <h1 className="auth-title">Entrar</h1>
+        <p className="auth-subtitle">
+          Acesse para salvar favoritos e receber recomendações.
+        </p>
 
-      <main className="auth-main">
-        <div className="auth-card">
-          <h1 className="auth-title">Entrar</h1>
-          <p className="auth-subtitle">Use o mesmo email da API.</p>
+        {error && <p className="error-text">{error}</p>}
 
-          <form className="auth-form" onSubmit={handleSubmit}>
-            {error && <p className="error-text">{error}</p>}
-
-            <label htmlFor="email">Email</label>
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <label className="auth-field">
+            <span>Email</span>
             <input
-              id="email"
-              className="auth-input"
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
               required
             />
+          </label>
 
-            <label htmlFor="password">Senha</label>
+          <label className="auth-field">
+            <span>Senha</span>
             <input
-              id="password"
-              className="auth-input"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
               required
             />
+          </label>
 
-            <button className="auth-button" type="submit">
-              Entrar
-            </button>
-          </form>
+          <button
+            type="submit"
+            className="primary-btn auth-submit"
+            disabled={loading}
+          >
+            {loading ? 'Entrando…' : 'Entrar'}
+          </button>
+        </form>
 
-          <p className="auth-footer">
-            Não tem conta?{' '}
-            <Link to="/signup" className="link-inline">
-              Criar agora
-            </Link>
-          </p>
-        </div>
-      </main>
+        <p className="auth-footer">
+          Ainda não tem conta? <Link to="/signup">Criar conta</Link>
+        </p>
+      </div>
     </div>
   );
 }

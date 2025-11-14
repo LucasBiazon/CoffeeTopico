@@ -1,151 +1,211 @@
 // src/pages/Home.tsx
-import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { getCoffees } from '../lib/api';
-import './home.css';
-
-type Coffee = {
-  _id: string;
-  name: string;
-  brand?: string;
-  origin_country?: string;
-  type?: string;
-  price?: { currency: string; value: number };
-  image_url?: string;
-};
+import { Link, useNavigate } from 'react-router-dom';
+import { getCoffees, type Coffee } from '../lib/api';
 
 export default function Home() {
   const [coffees, setCoffees] = useState<Coffee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const isLogged = !!localStorage.getItem('auth_token');
 
   useEffect(() => {
     (async () => {
       try {
-        const list = await getCoffees();
-        // mostra só alguns na home
-        setCoffees(list.slice(0, 4));
+        // ⬇️ AGORA usando CoffeeListResponse
+        const resp = await getCoffees({
+          page: 1,
+          limit: 12,
+          available: true,
+        });
+        setCoffees(resp.items);
+      } catch (e: any) {
+        setError(e.message || 'Erro ao carregar cafés');
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  const apiUrl =
-    (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/v1/coffees';
+  const highlighted = coffees.slice(0, 3);
+  const more = coffees.slice(3, 9);
 
   return (
-    <div className="home-page">
+    <div className="app-shell">
       {/* HEADER */}
-      <header className="home-header">
-        <div className="home-logo">
-          <span className="home-logo-icon">☕</span>
-          <div>
-            <h1 className="home-title">CoffeeTópico</h1>
-            <p className="home-subtitle">Dashboard de cafés</p>
-          </div>
+      <header className="app-header">
+        <div className="brand">
+          <span className="brand-mark">CoffeeTópico</span>
+          <span className="brand-dot">☕</span>
         </div>
 
-        <nav className="home-nav">
-          <Link to="/" className="home-nav-link active">
-            Home
+        <nav className="app-nav">
+          <Link to="/" className="nav-link nav-link-active">
+            Início
           </Link>
-          <Link to="/coffees" className="home-nav-link">
-            Cafés
+          <Link to="/coffees" className="nav-link">
+            Catálogo
           </Link>
-          <Link to="/login" className="home-nav-link">
-            Login
-          </Link>
+          {isLogged && (
+            <Link to="/profile" className="nav-link">
+              Meu perfil
+            </Link>
+          )}
         </nav>
 
-        {/* Sessão de perfil (fake por enquanto) */}
-        <div className="home-profile">
-          <div className="home-profile-avatar">A</div>
-          <div className="home-profile-text">
-            <p className="home-profile-name">André</p>
-            <p className="home-profile-role">admin</p>
-          </div>
+        <div className="auth-area">
+          {isLogged ? (
+            <button
+              className="secondary-btn"
+              onClick={() => {
+                localStorage.removeItem('auth_token');
+                window.location.reload();
+              }}
+            >
+              Sair
+            </button>
+          ) : (
+            <>
+              <Link to="/login" className="secondary-btn">
+                Entrar
+              </Link>
+              <Link to="/signup" className="primary-btn">
+                Criar conta
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
       {/* MAIN */}
       <main className="home-main">
-        {/* hero */}
+        {/* HERO + painel lateral */}
         <section className="home-hero">
-          <div>
-            <h2 className="home-hero-title">Bem-vindo ao CoffeeTópico ☕</h2>
-            <p className="home-hero-text">
-              Veja os cafés cadastrados na API, faça login, gerencie perfis e
-              futuramente adicione reviews.
+          <div className="hero-copy">
+            <h1 className="hero-title">
+              O café certo
+              <br />
+              para o momento certo.
+            </h1>
+            <p className="hero-subtitle">
+              Explore grãos especiais, bebidas prontas e, em breve,
+              recomendações inteligentes pelo clima e pelo seu gosto.
             </p>
-            <p className="home-hero-api">
-              API ativa em: <code>{apiUrl}</code>
-            </p>
-            <Link to="/coffees" className="home-hero-button">
-              Ver todos os cafés →
-            </Link>
-          </div>
-          <div className="home-hero-box">
-            <p className="home-hero-box-title">Status rápido</p>
-            <p className="home-hero-box-text">
-              {loading ? 'Carregando...' : `${coffees.length} cafés na home`}
-            </p>
-          </div>
-        </section>
 
-        {/* recomendações (placeholder) */}
-        <section className="home-section">
-          <div className="home-section-head">
-            <h3 className="home-section-title">Recomendações para você</h3>
-            <p className="home-section-subtitle">
-              Vamos puxar isso do backend depois.
-            </p>
-          </div>
-          <div className="home-recommend-grid">
-            <div className="home-recommend-card">
-              <p className="home-recommend-title">Para espresso</p>
-              <p className="home-recommend-text">
-                Cafés mais escuros e com corpo.
-              </p>
+            <div className="hero-actions">
+              <Link to="/coffees" className="primary-btn">
+                Ver catálogo completo
+              </Link>
+              {isLogged && (
+                <Link to="/profile" className="secondary-btn">
+                  Ajustar minhas preferências
+                </Link>
+              )}
             </div>
-            <div className="home-recommend-card">
-              <p className="home-recommend-title">Filtrados</p>
-              <p className="home-recommend-text">
-                Grãos claros, notas florais e frutas.
-              </p>
-            </div>
-            <div className="home-recommend-card">
-              <p className="home-recommend-title">Bebidas prontas</p>
-              <p className="home-recommend-text">
-                Cappuccino, latte, mocha e cold brew.
-              </p>
+
+            <div className="hero-profile-hint">
+              {isLogged ? (
+                <span>
+                  Você está logado. Vá em <strong>Meu perfil</strong> para
+                  atualizar o que você gosta (doces, intensos, etc).
+                </span>
+              ) : (
+                <span>
+                  Crie uma conta para salvar favoritos e ganhar recomendações
+                  personalizadas.
+                </span>
+              )}
             </div>
           </div>
-        </section>
 
-        {/* últimos cafés */}
-        <section className="home-section">
-          <div className="home-section-head">
-            <h3 className="home-section-title">Últimos cafés</h3>
-            <Link to="/coffees" className="home-section-link">
-              Ver todos
-            </Link>
-          </div>
+          <aside className="hero-panel">
+            <h2 className="panel-title">Sugestões do dia</h2>
 
-          <div className="home-coffee-grid">
-            {loading && <p>Carregando…</p>}
-            {!loading &&
-              coffees.map((c) => (
-                <div key={c._id} className="home-coffee-card">
-                  <div className="home-coffee-thumb" />
-                  <div className="home-coffee-body">
-                    <p className="home-coffee-name">{c.name}</p>
-                    <p className="home-coffee-meta">
+            {loading && <p>Carregando cafés…</p>}
+            {error && <p className="error-text">{error}</p>}
+            {!loading && !error && highlighted.length === 0 && (
+              <p>Nenhum café cadastrado ainda.</p>
+            )}
+
+            <div className="hero-coffee-list">
+              {highlighted.map((c) => (
+                <button
+                  key={c._id}
+                  type="button"
+                  className="mini-coffee-card"
+                  onClick={() => navigate(`/coffees/${c._id}`)}
+                >
+                  {c.image_url ? (
+                    <img
+                      src={c.image_url}
+                      alt={c.name}
+                      className="mini-coffee-thumb"
+                    />
+                  ) : (
+                    <div className="mini-coffee-thumb placeholder" />
+                  )}
+
+                  <div className="mini-coffee-info">
+                    <div className="mini-coffee-name">{c.name}</div>
+                    <div className="mini-coffee-meta">
                       {c.brand ?? '—'}
                       {c.origin_country ? ' • ' + c.origin_country : ''}
-                    </p>
+                    </div>
                   </div>
-                </div>
+                </button>
               ))}
+            </div>
+          </aside>
+        </section>
+
+        {/* RECOMENDAÇÕES / “IA + clima” futura */}
+        <section className="home-section">
+          <div className="section-header">
+            <h2 className="section-title">Recomendações para você</h2>
+            <p className="section-subtitle">
+              Aqui vai entrar a IA com clima e o seu histórico. Por enquanto,
+              mostramos alguns cafés do catálogo.
+            </p>
+          </div>
+
+          <div className="coffee-grid">
+            {more.map((c) => (
+              <article
+                key={c._id}
+                className="coffee-card"
+                onClick={() => navigate(`/coffees/${c._id}`)}
+              >
+                {c.image_url ? (
+                  <img
+                    src={c.image_url}
+                    alt={c.name}
+                    className="coffee-card-image"
+                  />
+                ) : (
+                  <div className="coffee-card-placeholder" />
+                )}
+
+                <div className="coffee-card-body">
+                  <div className="coffee-card-topline">
+                    <h3 className="coffee-card-name">{c.name}</h3>
+                    {c.type && <span className="coffee-pill">{c.type}</span>}
+                  </div>
+
+                  <p className="coffee-card-meta">
+                    {c.brand ?? '—'}
+                    {c.origin_country ? ' • ' + c.origin_country : ''}
+                  </p>
+
+                  {c.price && (
+                    <p className="coffee-card-price">
+                      {c.price.currency} {c.price.value}
+                    </p>
+                  )}
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       </main>

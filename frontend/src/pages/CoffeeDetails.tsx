@@ -1,202 +1,273 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import type { FormEvent } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import {
   getCoffeeById,
   getReviews,
   createReview,
+  type Coffee,
+  type Review,
   getAuthToken,
 } from '../lib/api';
 
-export default function CoffeeDetails() {
+export default function CoffeeDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const [coffee, setCoffee] = useState<any>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [coffee, setCoffee] = useState<Coffee | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reviewText, setReviewText] = useState('');
-  const [score, setScore] = useState(5);
   const [error, setError] = useState<string | null>(null);
+
+  const [reviewText, setReviewText] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [savingReview, setSavingReview] = useState(false);
 
   const isLogged = !!getAuthToken();
 
   useEffect(() => {
     if (!id) return;
+
     (async () => {
       try {
-        const c = await getCoffeeById(id);
+        const [c, r] = await Promise.all([getCoffeeById(id), getReviews(id)]);
         setCoffee(c);
-        const r = await getReviews(id);
-        setReviews(r.items || r || []);
-      } catch (err: any) {
-        setError(err.message);
+        setReviews(r);
+      } catch (e: any) {
+        setError(e.message || 'Erro ao carregar café');
       } finally {
         setLoading(false);
       }
     })();
   }, [id]);
 
-  async function handleSubmitReview(e: React.FormEvent) {
+  async function handleSubmitReview(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!id) return;
+    if (!reviewText.trim()) return;
+
+    setSavingReview(true);
     try {
-      await createReview(id, {
-        comment: reviewText,
-        rating: score,
+      const created = await createReview(id, {
+        rating: reviewRating,
+        comment: reviewText.trim(),
       });
+      setReviews((prev) => [created, ...prev]);
       setReviewText('');
-      const r = await getReviews(id);
-      setReviews(r.items || r || []);
+      setReviewRating(5);
     } catch (err: any) {
-      alert(err.message || 'Erro ao criar review');
+      alert(err.message || 'Erro ao enviar review');
+    } finally {
+      setSavingReview(false);
     }
   }
 
+  if (loading) {
+    return (
+      <div className="app-shell">
+        <p className="status-text" style={{ padding: '24px' }}>
+          Carregando café…
+        </p>
+      </div>
+    );
+  }
+
+  if (error || !coffee) {
+    return (
+      <div className="app-shell">
+        <p className="error-text" style={{ padding: '24px' }}>
+          {error || 'Café não encontrado.'}
+        </p>
+      </div>
+    );
+  }
+
+  const fallbackImage =
+    coffee.type === 'drink' ? '/coffee-drink.jpg' : '/coffee-beans.jpg';
+
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div className="topbar-left">
-          <Link to="/" className="brand">
-            CoffeeTópico ☕
-          </Link>
-          <p className="muted">Detalhes do café</p>
+      <header className="app-header">
+        <div className="brand">
+          <span className="brand-mark">CoffeeTópico</span>
+          <span className="brand-dot">☕</span>
         </div>
-        <div className="topbar-right">
-          <Link to="/profile" className="top-link">
-            Meu perfil
+
+        <nav className="app-nav">
+          <Link to="/" className="nav-link">
+            Início
           </Link>
-        </div>
+          <Link to="/coffees" className="nav-link">
+            Catálogo
+          </Link>
+        </nav>
       </header>
 
-      <main className="page-body">
-        {loading && <p>Carregando…</p>}
-        {error && <p className="error-text">{error}</p>}
-        {!loading && coffee && (
-          <>
-            <div
-              style={{
-                display: 'flex',
-                gap: '16px',
-                alignItems: 'flex-start',
-                marginBottom: '20px',
-              }}
-            >
-              <div style={{ flex: '0 0 280px' }}>
-                {coffee.image_url ? (
-                  <img
-                    src={coffee.image_url}
-                    alt={coffee.name}
-                    style={{
-                      width: '100%',
-                      borderRadius: '16px',
-                      objectFit: 'cover',
-                      height: '200px',
-                      background: '#f0e0ce',
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '200px',
-                      borderRadius: '16px',
-                      background: '#f0e0ce',
-                    }}
-                  />
-                )}
-              </div>
-              <div>
-                <h1 style={{ marginBottom: '4px' }}>{coffee.name}</h1>
-                <p style={{ color: '#8a6f60', fontSize: '0.85rem' }}>
-                  {coffee.brand} • {coffee.origin_country}
-                </p>
-                {coffee.price && (
-                  <p style={{ marginTop: '8px' }}>
-                    {coffee.price.currency} {coffee.price.value}
-                  </p>
-                )}
-              </div>
+      <main className="page-main">
+        <section className="details-layout">
+          <div className="details-media">
+            <img
+              src={coffee.image_url || fallbackImage}
+              alt={coffee.name}
+              className="details-image"
+            />
+          </div>
+
+          <div className="details-info">
+            <h1 className="details-title">{coffee.name}</h1>
+            <p className="details-meta">
+              {coffee.brand ?? '—'}
+              {coffee.origin_country ? ' • ' + coffee.origin_country : ''}
+            </p>
+
+            <div className="details-tags">
+              {coffee.type && <span className="tag-chip">{coffee.type}</span>}
+              {coffee.roast && (
+                <span className="tag-chip">torra: {coffee.roast}</span>
+              )}
+              {coffee.temperature && (
+                <span className="tag-chip">
+                  {coffee.temperature === 'hot'
+                    ? 'Quente'
+                    : coffee.temperature === 'cold'
+                      ? 'Gelado'
+                      : 'Quente ou gelado'}
+                </span>
+              )}
             </div>
 
-            <section style={{ marginTop: '20px' }}>
-              <h2 style={{ fontSize: '1rem' }}>Reviews</h2>
-              <div style={{ marginTop: '10px', display: 'grid', gap: '8px' }}>
-                {reviews.length === 0 && (
-                  <p style={{ fontSize: '0.8rem', color: '#8a6f60' }}>
-                    Nenhum review ainda.
+            {coffee.price && (
+              <p className="details-price">
+                {coffee.price.currency} {coffee.price.value}
+              </p>
+            )}
+
+            {coffee.tasting_notes && coffee.tasting_notes.length > 0 && (
+              <div className="details-section">
+                <h2>Notas sensoriais</h2>
+                <p>{coffee.tasting_notes.join(' · ')}</p>
+              </div>
+            )}
+
+            {coffee.attributes && (
+              <div className="details-section">
+                <h2>Perfil</h2>
+                <ul className="attributes-list">
+                  {Object.entries(coffee.attributes).map(([k, v]) => {
+                    if (v == null) return null;
+                    return (
+                      <li key={k}>
+                        <span className="attr-label">{k}</span>
+                        <span className="attr-bar">
+                          <span
+                            className="attr-bar-fill"
+                            style={{ width: `${(v / 5) * 100}%` }}
+                          />
+                        </span>
+                        <span className="attr-value">{v}/5</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {coffee.brew_methods && coffee.brew_methods.length > 0 && (
+              <div className="details-section">
+                <h2>Métodos sugeridos</h2>
+                <div className="tags-row">
+                  {coffee.brew_methods.map((m) => (
+                    <span key={m} className="tag-chip">
+                      {m}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {coffee.contains && coffee.contains.length > 0 && (
+              <div className="details-section">
+                <h2>Contém</h2>
+                <p>{coffee.contains.join(', ')}</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="details-reviews">
+          <div className="section-header">
+            <h2 className="section-title">Reviews</h2>
+            <p className="section-subtitle">
+              Veja o que outras pessoas acharam e deixe sua opinião.
+            </p>
+          </div>
+
+          {isLogged ? (
+            <form className="review-form" onSubmit={handleSubmitReview}>
+              <label>
+                Nota
+                <select
+                  value={reviewRating}
+                  onChange={(e) => setReviewRating(Number(e.target.value))}
+                  disabled={savingReview}
+                >
+                  {[5, 4, 3, 2, 1].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Comentário
+                <textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  rows={3}
+                  placeholder="Como foi a experiência com esse café?"
+                  disabled={savingReview}
+                />
+              </label>
+
+              <button
+                type="submit"
+                className="primary-btn"
+                disabled={savingReview}
+              >
+                {savingReview ? 'Enviando…' : 'Enviar review'}
+              </button>
+            </form>
+          ) : (
+            <p className="status-text">
+              Faça <Link to="/login">login</Link> para avaliar este café.
+            </p>
+          )}
+
+          <div className="reviews-list">
+            {reviews.length === 0 && (
+              <p className="status-text">Ainda não há reviews.</p>
+            )}
+
+            {reviews.map((r) => (
+              <article key={r._id} className="review-card">
+                <div className="review-header">
+                  <div className="review-rating">
+                    {'★'.repeat(r.rating)}{' '}
+                    <span className="review-rating-light">{r.rating}/5</span>
+                  </div>
+                  <div className="review-author">
+                    {r.user?.name ?? 'Usuário'}
+                  </div>
+                </div>
+                {r.comment && <p className="review-text">{r.comment}</p>}
+                {r.createdAt && (
+                  <p className="review-date">
+                    {new Date(r.createdAt).toLocaleDateString('pt-BR')}
                   </p>
                 )}
-                {reviews.map((r, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      background: '#fff',
-                      borderRadius: '12px',
-                      padding: '10px 12px',
-                      border: '1px solid rgba(0,0,0,0.02)',
-                    }}
-                  >
-                    <p style={{ fontSize: '0.8rem' }}>{r.comment}</p>
-                    {r.rating && (
-                      <p style={{ fontSize: '0.7rem', color: '#8a6f60' }}>
-                        Nota: {r.rating}/5
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section style={{ marginTop: '20px' }}>
-              {isLogged ? (
-                <form onSubmit={handleSubmitReview}>
-                  <h3
-                    style={{
-                      fontSize: '0.9rem',
-                      marginBottom: '6px',
-                    }}
-                  >
-                    Adicionar review
-                  </h3>
-                  <label style={{ fontSize: '0.7rem' }}>Comentário</label>
-                  <textarea
-                    value={reviewText}
-                    onChange={(e) => setReviewText(e.target.value)}
-                    style={{
-                      width: '100%',
-                      minHeight: '80px',
-                      borderRadius: '12px',
-                      border: '1px solid rgba(0,0,0,0.05)',
-                      padding: '8px 10px',
-                      marginBottom: '8px',
-                    }}
-                  />
-                  <label style={{ fontSize: '0.7rem' }}>Nota (1-5)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={5}
-                    value={score}
-                    onChange={(e) => setScore(Number(e.target.value))}
-                    style={{
-                      width: '80px',
-                      borderRadius: '10px',
-                      border: '1px solid rgba(0,0,0,0.05)',
-                      padding: '4px 6px',
-                      marginBottom: '10px',
-                      display: 'block',
-                    }}
-                  />
-                  <button className="auth-button" type="submit">
-                    Enviar review
-                  </button>
-                </form>
-              ) : (
-                <p style={{ fontSize: '0.75rem', color: '#8a6f60' }}>
-                  Faça <Link to="/login">login</Link> para deixar um review.
-                </p>
-              )}
-            </section>
-          </>
-        )}
+              </article>
+            ))}
+          </div>
+        </section>
       </main>
     </div>
   );

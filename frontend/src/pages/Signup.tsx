@@ -1,111 +1,95 @@
-import { useState, type FormEvent } from 'react';
-import { signup } from '../lib/api';
+// src/pages/Signup.tsx
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { signup } from '../lib/api';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'admin' | 'user' | ''>('');
+  const [role, setRole] = useState<'user' | 'admin'>('user');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setLoading(true);
     try {
-      const payload: any = { name, email, password };
-      if (role) payload.role = role;
-      await signup(payload);
-      // se deu certo, manda pro login
+      await signup({ name, email, password, role });
       navigate('/login');
     } catch (err: any) {
-      setError(err.message || 'Erro ao criar conta');
+      setError(err.message || 'Erro ao criar usuário');
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
     <div className="auth-shell">
-      <header className="topbar">
-        <div className="topbar-left">
-          <Link to="/" className="brand">
-            CoffeeTópico ☕
-          </Link>
-          <p className="muted">Criar conta</p>
-        </div>
-        <div className="topbar-right">
-          <Link to="/login" className="top-link">
-            Já tenho conta
-          </Link>
-        </div>
-      </header>
+      <div className="auth-card">
+        <h1 className="auth-title">Criar conta</h1>
+        <p className="auth-subtitle">
+          Comece a montar sua prateleira de cafés favoritos.
+        </p>
 
-      <main className="auth-main">
-        <div className="auth-card">
-          <h1 className="auth-title">Criar conta</h1>
-          <p className="auth-subtitle">
-            Cadastre-se para poder cadastrar cafés e deixar reviews.
-          </p>
+        {error && <p className="error-text">{error}</p>}
 
-          <form className="auth-form" onSubmit={handleSubmit}>
-            {error && <p className="error-text">{error}</p>}
-
-            <label htmlFor="name">Nome</label>
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <label className="auth-field">
+            <span>Nome</span>
             <input
-              id="name"
-              className="auth-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
+          </label>
 
-            <label htmlFor="email">Email</label>
+          <label className="auth-field">
+            <span>Email</span>
             <input
-              id="email"
-              className="auth-input"
               type="email"
-              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
+          </label>
 
-            <label htmlFor="role">Função (opcional)</label>
-            <select
-              id="role"
-              className="auth-input"
-              value={role}
-              onChange={(e) => setRole(e.target.value as any)}
-            >
-              <option value="">Escolher…</option>
-              <option value="user">Usuário</option>
-              <option value="admin">Admin</option>
-            </select>
-
-            <label htmlFor="password">Senha</label>
+          <label className="auth-field">
+            <span>Senha</span>
             <input
-              id="password"
-              className="auth-input"
               type="password"
-              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+          </label>
 
-            <button className="auth-button" type="submit">
-              Criar conta
-            </button>
-          </form>
+          <label className="auth-field">
+            <span>Papel</span>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as 'user' | 'admin')}
+            >
+              <option value="user">Cliente</option>
+              <option value="admin">Admin (gerenciar cafés)</option>
+            </select>
+          </label>
 
-          <p className="auth-footer">
-            Já tem conta?{' '}
-            <Link to="/login" className="link-inline">
-              Fazer login
-            </Link>
-          </p>
-        </div>
-      </main>
+          <button
+            type="submit"
+            className="primary-btn auth-submit"
+            disabled={loading}
+          >
+            {loading ? 'Criando conta…' : 'Criar conta'}
+          </button>
+        </form>
+
+        <p className="auth-footer">
+          Já tem conta? <Link to="/login">Entrar</Link>
+        </p>
+      </div>
     </div>
   );
 }
