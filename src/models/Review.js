@@ -1,30 +1,35 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
+const { Schema } = mongoose;
 
-const ReviewSchema = new mongoose.Schema({
-  user_id: {
-    type: mongoose.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    index: true
+const ReviewSchema = new Schema(
+  {
+    coffee: {
+      type: Schema.Types.ObjectId,
+      ref: "Coffee",
+      required: true,
+      index: true,
+    },
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    rating: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 5,
+    },
+    comment: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
+    },
   },
-  coffee_id: {
-    type: mongoose.Types.ObjectId,
-    ref: 'Coffee',
-    required: true,
-    index: true
-  },
-  rating: {
-    type: Number,
-    min: 1,
-    max: 5,
-    required: true
-  },
-  comment: {
-    type: String,
-    trim: true
-  }
-}, { timestamps: true });
+  { timestamps: true }
+);
 
-ReviewSchema.index({ user_id: 1, coffee_id: 1 }, { unique: true });
+ReviewSchema.index({ coffee: 1, user: 1 }, { unique: true });
 
-export default mongoose.model('Review', ReviewSchema);
+export default mongoose.model("Review", ReviewSchema);

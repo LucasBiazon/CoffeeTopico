@@ -1,8 +1,10 @@
-import { Router } from 'express';
-import { auth } from '../middleware/auth.js';
-import { getMyProfile, upsertMyProfile } from '../controllers/profiles.controller.js';
+import { Router } from "express";
+import { authRequired } from "../middleware/auth.js";
+import { getMyProfile, upsertMyProfile } from "../controllers/profiles.controller.js";
 
-const r = Router();
-r.get('/me', auth(), getMyProfile);
-r.put('/me', auth(), upsertMyProfile);
-export default r;
+const router = Router();
+
+router.get("/me", authRequired, getMyProfile);
+router.put("/me", authRequired, upsertMyProfile);
+
+export default router;

@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { auth } from "../middleware/auth.js";
-import { getWeatherRecommendations, getAiRecommendations } from "../controllers/recs.controller.js";
+import { authRequired } from "../middleware/auth.js";
+import {
+  getWeatherRecommendations,
+  getPersonalizedRecommendations,
+} from "../controllers/recs.controller.js";
 
-const r = Router();
+const router = Router();
 
-r.get("/weather-live", getWeatherRecommendations);
-r.get("/ai", auth(), getAiRecommendations);
+router.get("/weather-live", getWeatherRecommendations);
+router.get("/ai", authRequired, getPersonalizedRecommendations);
 
-export default r;
+export default router;

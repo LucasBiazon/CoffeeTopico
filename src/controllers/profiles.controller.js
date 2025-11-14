@@ -1,32 +1,40 @@
-
 import Profile from "../models/Profile.js";
 
-export async function getMyProfile(req, res) {
+export async function getMyProfile(req, res, next) {
   try {
-    const userId = req.user?._id ?? req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthenticated" });
+    const userId = req.user.id;
+    let profile = await Profile.findOne({ user: userId }).lean();
+
+    if (!profile) {
+      profile = await Profile.create({ user: userId });
     }
 
-    const doc = await Profile.findOneAndUpdate(
-      { user_id: userId },
-      { $setOnInsert: { user_id: userId } },
-      { new: true, upsert: true }
-    ).lean();
-
-    return res.json(doc);
+    res.json(profile);
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Internal error" });
+    next(err);
   }
 }
 
+export async function upsertMyProfile(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const payload = {
+      favoriteRoast: req.body.favoriteRoast,
+      prefersMilk: req.body.prefersMilk,
+      prefersSugar: req.body.prefersSugar,
+      budgetMin: req.body.budgetMin,
+      budgetMax: req.body.budgetMax,
+      brewMethods: req.body.brewMethods,
+    };
 
-export async function upsertMyProfile(req, res) {
-  const updated = await Profile.findOneAndUpdate(
-    { user_id: req.user.id },
-    { $set: { ...req.body, user_id: req.user.id } },
-    { upsert: true, new: true }
-  );
-  res.json(updated);
+    const profile = await Profile.findOneAndUpdate(
+      { user: userId },
+      { $set: payload, $setOnInsert: { user: userId } },
+      { new: true, upsert: true }
+    ).lean();
+
+    res.json(profile);
+  } catch (err) {
+    next(err);
+  }
 }

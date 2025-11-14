@@ -1,28 +1,22 @@
+// src/models/Profile.js
 import mongoose from "mongoose";
+const { Schema } = mongoose;
 
-const ProfileSchema = new mongoose.Schema(
+const ProfileSchema = new Schema(
   {
-    user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
-    flavor: {
-      acidity: { type: Number, min: 0, max: 5, default: 0 },
-      sweetness: { type: Number, min: 0, max: 5, default: 0 },
-      bitterness: { type: Number, min: 0, max: 5, default: 0 },
-      body: { type: Number, min: 0, max: 5, default: 0 },
-      aroma: { type: Number, min: 0, max: 5, default: 0 },
+    user: { type: Schema.Types.ObjectId, ref: "User", unique: true, required: true },
+    favoriteRoast: {
+      type: String,
+      enum: ["light", "medium", "dark"],
+      default: "medium",
     },
-    roast: { type: String, enum: ["light", "medium", "dark", null], default: null },
-    methods: [{ type: String }],
-    budget: {
-      currency: { type: String, default: "BRL" },
-      max: { type: Number, default: null },
-    },
-    milk_ok: { type: Boolean, default: true },
-    sugar_ok: { type: Boolean, default: true },
-    lactose_free: { type: Boolean, default: false },
-    allergies: [{ type: String }],
+    prefersMilk: { type: Boolean, default: false },
+    prefersSugar: { type: Boolean, default: false },
+    budgetMin: { type: Number, default: 0 },
+    budgetMax: { type: Number, default: 999 },
+    brewMethods: [{ type: String }],
   },
   { timestamps: true }
 );
 
-export const Profile = mongoose.model("Profile", ProfileSchema);
-export default Profile;
+export default mongoose.model("Profile", ProfileSchema);

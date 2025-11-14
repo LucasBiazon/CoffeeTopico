@@ -1,13 +1,19 @@
-import { Router } from 'express';
-import { auth, requireRole } from '../middleware/auth.js';
+import { Router } from "express";
 import {
-  createCoffee, listCoffees, getCoffee, updateCoffee, deleteCoffee
-} from '../controllers/coffees.controller.js';
+  listCoffees,
+  getCoffeeById,
+} from "../controllers/coffees.controller.js";
+import {
+  listReviewsForCoffee,
+  createReviewForCoffee,
+} from "../controllers/reviews.controller.js";
+import { authRequired } from "../middleware/auth.js";
 
-const r = Router();
-r.get('/', listCoffees);
-r.get('/:id', getCoffee);
-r.post('/', auth(), requireRole("admin"), createCoffee);
-r.patch('/:id', auth(), requireRole('admin'), updateCoffee);
-r.delete('/:id', auth(), requireRole('admin'), deleteCoffee);
-export default r;
+const router = Router();
+
+router.get("/", listCoffees);
+router.get("/:id", getCoffeeById);
+router.get("/:id/reviews", listReviewsForCoffee);
+router.post("/:id/reviews", authRequired, createReviewForCoffee);
+
+export default router;

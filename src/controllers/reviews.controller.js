@@ -1,97 +1,92 @@
-import mongoose from "mongoose";
-import Review from "../models/review.model.js";
-import Coffee from "../models/coffee.model.js";
+import Review from "../models/Review.js";
+import Coffee from "../models/Coffee.js";
 
-export async function listReviews(req, res, next) {
+export async function listReviewsForCoffee(req, res, next) {
   try {
-    const { coffeeId } = req.params;
+    const coffeeId = req.params.id;
 
-    const reviews = await Review.find({ coffee_id: coffeeId })
+    const reviews = await Review.find({ coffee: coffeeId })
       .sort({ createdAt: -1 })
-      .populate("user_id", "name email")
+      .limit(100)
+      .populate({ path: "user", select: "name email" })
       .lean();
 
-    const mapped = reviews.map((r) => ({
-      _id: r._id,
-      rating: r.rating,
-      comment: r.comment,
-      createdAt: r.createdAt,
-      user: r.user_id ? {
-        _id: r.user_id._id,
-        name: r.user_id.name,
-        email: r.user_id.email,
-      } : undefined,
-    }));
-
-    res.json(mapped);
+    res.json(
+      reviews.map((r) => ({
+        id: r._id,
+        coffeeId: r.coffee,
+        user: {
+          id: r.user?._id,
+          name: r.user?.name || "Usuário",
+          email: r.user?.email,
+        },
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt,
+      }))
+    );
   } catch (err) {
     next(err);
   }
 }
 
-export async function createReview(req, res, next) {
+export async function createReviewForCoffee(req, res, next) {
   try {
-    const { coffeeId } = req.params;
+    const coffeeId = req.params.id;
     const userId = req.user.id;
+    const { rating, comment } = req.body || {};
 
-    const { rating, comment } = req.body;
-
-    if (!rating || rating < 1 || rating > 5) {
-      return res.status(400).json({
-        error: "rating deve ser um número entre 1 e 5",
-      });
+    const r = Number(rating);
+    if (!r || r < 1 || r > 5) {
+      return res
+        .status(400)
+        .json({ error: "rating deve ser um número entre 1 e 5" });
     }
 
-    const review = await Review.create({
-      coffee_id: new mongoose.Types.ObjectId(coffeeId),
-      user_id: new mongoose.Types.ObjectId(userId),
-      rating,
-      comment: comment?.trim(),
-    });
+    const coffee = await Coffee.findById(coffeeId);
+    if (!coffee) {
+      return res.status(404).json({ error: "Café não encontrado" });
+    }
 
-    const [agg] = await Review.aggregate([
-      { $match: { coffee_id: new mongoose.Types.ObjectId(coffeeId) } },
+    const review = await Review.findOneAndUpdate(
+      { coffee: coffeeId, user: userId },
+      { $set: { rating: r, comment } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    const agg = await Review.aggregate([
+      { $match: { coffee: coffee._id } },
       {
         $group: {
-          _id: "$coffee_id",
-          avg: { $avg: "$rating" },
+          _id: "$coffee",
+          avgRating: { $avg: "$rating" },
           count: { $sum: 1 },
         },
       },
     ]);
 
-    if (agg) {
-      await Coffee.findByIdAndUpdate(coffeeId, {
-        rating_avg: agg.avg,
-        rating_count: agg.count,
-      });
+    if (agg.length > 0) {
+      const { avgRating, count } = agg[0];
+      coffee.rating_avg = avgRating;
+      coffee.rating_count = count;
+      await coffee.save();
     }
 
-    const populated = await review.populate("user_id", "name email");
+    const populated = await review.populate("user", "name email");
 
-    return res.status(201).json({
-      _id: populated._id,
+    res.status(201).json({
+      id: populated._id,
+      coffeeId: populated.coffee,
+      user: {
+        id: populated.user?._id,
+        name: populated.user?.name || "Usuário",
+        email: populated.user?.email,
+      },
       rating: populated.rating,
       comment: populated.comment,
       createdAt: populated.createdAt,
-      user: populated.user_id
-        ? {
-          _id: populated.user_id._id,
-          name: populated.user_id.name,
-          email: populated.user_id.email,
-        }
-        : undefined,
     });
   } catch (err) {
-    if (
-      err?.code === 11000 &&
-      err?.keyPattern?.user_id &&
-      err?.keyPattern?.coffee_id
-    ) {
-      return res.status(409).json({
-        error: "Você já enviou um review para este café.",
-      });
-    }
     next(err);
   }
 }
